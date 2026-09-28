@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>4 Pics 1 Word - Data Governance, Privacy & Digital Rights</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#161616;--card:#1f2a3d;--blue:#2f8be0;--tx:#fff;--mut:#9fb3c8;--green:#5ee08a;--red:#ff7a7a}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,Segoe UI,sans-serif;text-align:center;padding:16px}
+h1{color:var(--blue);font-size:1.3rem;margin:4px 0}
+.sub{color:var(--mut);font-size:.85rem;margin-bottom:10px}
+.nav{display:flex;gap:6px;justify-content:center;margin:8px 0}
+.nav button{width:38px;height:38px;border-radius:50%;border:2px solid var(--blue);background:none;color:var(--tx);font-weight:700;cursor:pointer}
+.nav button.on{background:var(--blue)}
+.flashcard{max-width:380px;margin:14px auto;padding:15px;background:var(--card);border:1px solid #33465f;border-radius:20px;box-shadow:0 8px 25px rgba(0,0,0,.25)}
+.card-number{color:var(--mut);font-size:.8rem;margin-bottom:8px}
+.pics{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:320px;margin:12px auto}
+.pics div{background:#26364d;border-radius:14px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:3.6rem;border:1px solid #33465f}
+.hint{min-height:2em;color:var(--green);font-size:.85rem;max-width:340px;margin:8px auto}
+.ans,.bank{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:380px;margin:10px auto}
+.box{width:34px;height:40px;border:2px solid var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.2rem;background:#101820;cursor:pointer}
+.box.locked{background:#243b32;border-color:var(--green);color:var(--green);cursor:default}
+.key{width:38px;height:42px;border:0;border-radius:8px;background:var(--blue);color:#fff;font-weight:800;font-size:1.1rem;cursor:pointer}
+.key:disabled{opacity:.15;cursor:default}
+.tools{margin-top:8px}
+.tools button{margin:4px;padding:8px 14px;border-radius:999px;border:1px solid var(--blue);background:none;color:var(--tx);cursor:pointer}
+.tools button:hover{background:var(--blue)}
+.msg{min-height:1.5em;font-weight:700;margin:8px 0}
+.ok{color:var(--green)}.no{color:var(--red)}
+.ans.win .box{border-color:var(--green);color:var(--green)}
+.complete{max-width:380px;margin:30px auto;padding:30px 20px;background:var(--card);border:1px solid #33465f;border-radius:20px;box-shadow:0 8px 25px rgba(0,0,0,.25)}
+.complete-icon{font-size:4rem;margin-bottom:10px}
+.complete h2{color:var(--green);margin:8px 0}
+.complete p{color:var(--mut);font-size:.9rem}
+.restart{margin-top:15px;padding:10px 20px;border:0;border-radius:999px;background:var(--blue);color:#fff;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>4 PICS 1 WORD</h1>
+<div class="sub">Data Governance, Privacy, and Digital Rights</div>
+<div class="nav" id="nav"></div>
+<div class="flashcard">
+  <div class="card-number" id="cardNumber"></div>
+  <div class="pics" id="pics"></div>
+  <div class="hint" id="hint"></div>
+  <div class="ans" id="ans"></div>
+  <div class="msg" id="msg"></div>
+  <div class="bank" id="bank"></div>
+  <div class="tools">
+    <button onclick="showHint()">💡 Hint</button>
+    <button onclick="clearAns()">↺ Clear</button>
+    <button onclick="reshuffle()">🔀 Shuffle</button>
+  </div>
+</div>
+<script>
+const items=[
+  {w:"PRIVACY",p:["🚫👀","🤫","🔒","🕵️"]},
+  {w:"ACCESS",p:["🚪","🔑","👤","💻"]},
+  {w:"GOVERNANCE",p:["⚖️","📜","🏛️","📊"]},
+  {w:"ENCRYPTION",p:["🔐","🔒","💻","🛡️"]},
+  {w:"DATA",p:["💾","📊","🗂️","📱"]}
+];
+let cur=0,fill=[],bank=[],locked=[];
+const $=id=>document.getElementById(id);
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function makeBank(){
+  const word=items[cur].w.split("");
+  const extra="AEIOUNRSTLDMCPBGHFKWYVXZ".split("").filter(c=>!word.includes(c));
+  const total=Math.max(12,word.length+4);
+  const letters=word.slice();
+  shuffle(extra);
+  while(letters.length<total)letters.push(extra.pop());
+  bank=shuffle(letters).map((c,i)=>({c:c,used:false,i:i}));
+}
+
+function load(i){
+  cur=i;
+  fill=Array(items[i].w.length).fill(null);
+  locked=Array(items[i].w.length).fill(false);
+  makeBank();
+  $("hint").textContent="";
+  $("msg").textContent="";
+  render();
+}
+
+function render(){
+  const it=items[cur];
+  $("cardNumber").textContent=`Card ${cur+1} of ${items.length}`;
+  $("nav").innerHTML=items.map((_,i)=>`<button class="${i==cur?'on':''}" onclick="load(${i})">${i+1}</button>`).join("");
+  $("pics").innerHTML=it.p.map(e=>`<div>${e}</div>`).join("");
+  $("ans").className="ans";
+  $("ans").innerHTML=fill.map((f,i)=>`<div class="box ${locked[i]?'locked':''}" onclick="${locked[i]?'':'removeAt('+i+')'}">${f?f.c:""}</div>`).join("");
+  $("bank").innerHTML=bank.map((b,k)=>`<button class="key" ${b.used?'disabled':''} onclick="pick(${k})">${b.c}</button>`).join("");
+}
+
+function pick(k){
+  const position=fill.findIndex((x,i)=>x===null&&!locked[i]);
+  if(position<0)return;
+  fill[position]=bank[k];
+  bank[k].used=true;
+  render();
+  check();
+}
+
+function removeAt(i){
+  if(locked[i])return;
+  if(!fill[i])return;
+  fill[i].used=false;
+  fill[i]=null;
+  $("msg").textContent="";
+  render();
+}
+
+function check(){
+  if(fill.includes(null))return;
+  const answer=fill.map(f=>f.c).join("");
+  if(answer===items[cur].w){
+    $("msg").innerHTML='<span class="ok">Correct! 🎉</span>';
+    $("ans").classList.add("win");
+    setTimeout(nextCard,1000);
+  }else{
+    $("msg").innerHTML='<span class="no">Try again</span>';
+  }
+}
+
+function showHint(){
+  const word=items[cur].w;
+  const empty=[];
+  for(let i=0;i<word.length;i++){
+    if(fill[i]===null&&!locked[i])empty.push(i);
+  }
+  if(empty.length===0)return;
+  const randomIndex=empty[Math.floor(Math.random()*empty.length)];
+  const correctLetter=word[randomIndex];
+  const bankIndex=bank.findIndex(b=>!b.used&&b.c===correctLetter);
+  if(bankIndex===-1)return;
+  fill[randomIndex]=bank[bankIndex];
+  bank[bankIndex].used=true;
+  locked[randomIndex]=true;
+  $("hint").textContent="💡 One letter was revealed!";
+  render();
+  check();
+}
+
+function clearAns(){
+  fill.forEach((f,i)=>{
+    if(f&&!locked[i]){f.used=false;fill[i]=null;}
+  });
+  $("msg").textContent="";
+  render();
+}
+
+function reshuffle(){
+  clearAns();
+  makeBank();
+  render();
+}
+
+function nextCard(){
+  if(cur<items.length-1){
+    cur++;
+    fill=Array(items[cur].w.length).fill(null);
+    locked=Array(items[cur].w.length).fill(false);
+    makeBank();
+    $("hint").textContent="";
+    $("msg").textContent="";
+    render();
+  }else{
+    showComplete();
+  }
+}
+
+function showComplete(){
+  $("nav").innerHTML="";
+  $("pics").innerHTML=`<div style="grid-column:1/3;aspect-ratio:auto;padding:35px 15px;font-size:4rem;">🎉</div>`;
+  $("ans").innerHTML="";
+  $("bank").innerHTML="";
+  $("hint").textContent="You completed all 5 cards!";
+  $("msg").innerHTML=`
+    <div class="complete">
+      <div class="complete-icon">🏆</div>
+      <h2>Great Job!</h2>
+      <p>You completed all five Data Governance words.</p>
+      <button class="restart" onclick="restartGame()">🔄 Play Again</button>
+    </div>`;
+}
+
+function restartGame(){
+  cur=0;fill=[];bank=[];locked=[];
+  load(0);
+}
+
+load(0);
+</script>
+</body>
+</html>
